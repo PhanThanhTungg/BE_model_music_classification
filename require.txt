@@ -1,0 +1,9 @@
+numpy
+librosa
+tensorflow
+flask
+flask-cors
+pandas
+matplotlib
+scipy
+scikit-learn
