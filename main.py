@@ -84,13 +84,12 @@ def predict():
             genre, confidence = predict_genre(temp.name, model)
 
             return jsonify({
-                'thể loại': genre,
-                'độ tin cậy': float(confidence)
+                'genre': genre,
+                'confidence': float(confidence)
             })
         except Exception as e:
             return jsonify({'error': str(e)}), 500
         finally:
-            # Xóa file tạm
             temp.close()
             os.unlink(temp.name)
 
