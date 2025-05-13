@@ -77,12 +77,23 @@ def predict():
         return jsonify({'error': 'Không có file được chọn'}), 400
 
     if file:
-        temp = tempfile.NamedTemporaryFile(delete=False)
-        file.save(temp.name)
-
+        temp_dir = tempfile.mkdtemp()
         try:
-            genre, confidence = predict_genre(temp.name, model)
-
+            audio_path = os.path.join(temp_dir, file.filename)
+            file.save(audio_path)
+            
+            zip_path = os.path.join(temp_dir, 'audio.zip')
+            with zipfile.ZipFile(zip_path, 'w') as zip_file:
+                zip_file.write(audio_path, os.path.basename(audio_path))
+            
+            extract_dir = os.path.join(temp_dir, 'extracted')
+            os.makedirs(extract_dir, exist_ok=True)
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_ref.extractall(extract_dir)
+            
+            extracted_file_path = os.path.join(extract_dir, os.path.basename(audio_path))
+            
+            genre, confidence = predict_genre(extracted_file_path, model)
             return jsonify({
                 'genre': genre,
                 'confidence': float(confidence)
@@ -90,8 +101,7 @@ def predict():
         except Exception as e:
             return jsonify({'error': str(e)}), 500
         finally:
-            temp.close()
-            os.unlink(temp.name)
+            shutil.rmtree(temp_dir, ignore_errors=True)
 
 @app.route('/retrain', methods=['POST'])
 def retrain():
@@ -124,13 +134,6 @@ def retrain():
         if not genres_dir:
             return jsonify({'error': 'Không tìm thấy thư mục genres_original trong file zip'}), 400
 
-        # project_upload_dir = os.path.join(os.path.dirname(__file__), 'uploaded_data')
-        # os.makedirs(project_upload_dir, exist_ok=True)
-        # saved_dir = os.path.join(project_upload_dir, os.path.basename(genres_dir))
-        # if os.path.exists(saved_dir):
-        #     shutil.rmtree(saved_dir)
-        # shutil.copytree(genres_dir, saved_dir)
-
         genre_num = []
         mfcc = []
 
@@ -144,7 +147,7 @@ def retrain():
 
         X = np.array(mfcc)
         y = np.array(genre_num)
-        # Train-validation-test Split
+
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
         X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.3, random_state=42, stratify=y_train)
 
@@ -217,7 +220,3 @@ def retrain():
 
 if __name__ == '__main__':
     app.run(debug=True)
-# set FLASK_APP=main.py  
-# set FLASK_ENV=development
-# flask --app main.py run
-# flask run
