@@ -205,7 +205,7 @@ def retrain():
         print("Training finished!")
         model_cnn3.save('./models/model_cnn3.h5')
 
-        loss_cnn3, acc_cnn3 = model.evaluate(X_test_cnn, y_test)
+        loss_cnn3, acc_cnn3 = model_cnn3.evaluate(X_test_cnn, y_test)
 
         return jsonify({
             'loss': float(loss_cnn3),
